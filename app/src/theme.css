@@ -240,6 +240,20 @@ h2 { font-size: 19px; }
 .seg-label { width: 100%; max-width: 420px; text-align: left; color: var(--ink-soft); font-weight: 900; font-size: 12px;
   text-transform: uppercase; letter-spacing: .6px; margin: 18px 0 -8px; }
 
+/* -- toggle row (lobby: add bots) ---------------------------- */
+.toggle-row { display: flex; align-items: center; gap: 12px; cursor: pointer;
+  background: linear-gradient(180deg, var(--cream), var(--cream-shade)); border-radius: 18px; padding: 14px 16px;
+  box-shadow: inset 0 1px 0 var(--highlight), var(--shadow-sm), 0 0 0 1px var(--hairline); }
+.toggle-row > div:first-child { flex: 1; }
+.toggle-title { font-weight: 900; color: var(--ink); }
+.toggle-sub { font-weight: 800; color: var(--ink-soft); font-size: 12.5px; margin-top: 1px; }
+.switch { flex-shrink: 0; width: 50px; height: 30px; border-radius: 999px; background: #e2d3b6; position: relative;
+  box-shadow: inset 0 2px 4px rgba(122,79,42,.22); transition: background .18s ease; }
+.switch.on { background: linear-gradient(180deg, #79c06d, var(--green)); box-shadow: inset 0 1px 0 rgba(255,255,255,.3); }
+.switch .knob { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff;
+  box-shadow: var(--shadow-sm); transition: transform .18s cubic-bezier(.3,.8,.4,1.2); }
+.switch.on .knob { transform: translateX(20px); }
+
 /* -- matchmaking (quick play) -------------------------------- */
 .match { position: relative; z-index: 1; flex: 1; min-height: 0; overflow-y: auto;
   padding: calc(var(--safe-top) + 16px) 20px calc(var(--safe-bottom) + 20px);
@@ -373,6 +387,29 @@ h2 { font-size: 19px; }
 .bubble .say.accuse { box-shadow: inset 0 0 0 1.5px rgba(214,69,59,.4); }
 .bubble .say.claim { box-shadow: inset 0 0 0 1.5px rgba(47,147,207,.45); }
 .bubble .say.defend { box-shadow: inset 0 0 0 1.5px rgba(110,180,95,.4); }
+
+/* your own chat lines sit on the right, in a warm accent bubble */
+.bubble.me { flex-direction: row-reverse; margin-left: auto; }
+.bubble.me .say { background: linear-gradient(180deg, #f7c46a, var(--lamp)); color: #43320f;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.4); }
+.scene.day .bubble.me .say { background: linear-gradient(180deg, #f6bb5a, var(--accent)); color: #fff; }
+.bubble.me .say .who { opacity: .8; }
+
+/* chat composer */
+.chatbar { position: relative; z-index: 3; display: flex; gap: 8px; align-items: center; margin: 10px 0 2px; }
+.chat-input { flex: 1; min-width: 0; border: none; border-radius: 999px; padding: 12px 16px; font-family: inherit;
+  font-weight: 700; font-size: 14.5px; background: rgba(255,255,255,.16); color: #f4eede;
+  box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.22); }
+.chat-input::placeholder { color: rgba(244,238,222,.6); }
+.scene.day .chat-input { background: var(--cream); color: var(--ink); box-shadow: inset 0 1px 0 var(--highlight), var(--shadow-sm), 0 0 0 1px var(--hairline); }
+.scene.day .chat-input::placeholder { color: #b39e7c; }
+.chat-input:focus { outline: none; box-shadow: inset 0 0 0 2px var(--lamp); }
+.scene.day .chat-input:focus { box-shadow: inset 0 0 0 2px var(--accent), 0 0 0 1px var(--hairline); }
+.chat-send { flex-shrink: 0; width: 46px; height: 46px; border-radius: 50%; border: none; cursor: pointer; font-size: 18px;
+  display: grid; place-items: center; background: linear-gradient(180deg, #f7c46a, var(--lamp)); color: #43320f;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 3px 0 #c98a35, var(--shadow-sm); transition: transform .1s ease; }
+.chat-send:active { transform: translateY(2px); box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 1px 0 #c98a35; }
+.chat-send:disabled { opacity: .5; box-shadow: 0 3px 0 #c98a35; cursor: default; }
 
 /* sticky action dock at the bottom of the scene */
 .dock { position: relative; z-index: 3; padding: 12px 4px 0; display: flex; flex-direction: column; gap: 9px; }

@@ -1,6 +1,13 @@
 import { useState } from 'react'
 import { useStore } from '../store'
 import { shareLink, haptic } from '../telegram'
+import type { Difficulty } from '@shared/roles'
+
+const DIFFS: { id: Difficulty; label: string }[] = [
+  { id: 'easy', label: 'Лёгкий' },
+  { id: 'normal', label: 'Обычный' },
+  { id: 'hard', label: 'Сложный' },
+]
 
 export function Lobby() {
   const room = useStore(s => s.room)
@@ -11,6 +18,10 @@ export function Lobby() {
   const joinRoom = useStore(s => s.joinRoom)
   const joinError = useStore(s => s.joinError)
   const busy = useStore(s => s.busy)
+  const addBots = useStore(s => s.addBots)
+  const setAddBots = useStore(s => s.setAddBots)
+  const botDifficulty = useStore(s => s.botDifficulty)
+  const setBotDifficulty = useStore(s => s.setBotDifficulty)
   const [code, setCode] = useState('')
 
   // ── join form (no room yet) ───────────────────────────────────────────────
@@ -85,8 +96,37 @@ export function Lobby() {
         )}
       </div>
 
+      {isHost && (
+        <div style={{ width: '100%', maxWidth: 420, marginTop: 18 }}>
+          <div className="toggle-row" onClick={() => setAddBots(!addBots)}>
+            <div>
+              <div className="toggle-title">Добавить ботов</div>
+              <div className="toggle-sub">Заполнить пустые места до города из {room.room.townSize}</div>
+            </div>
+            <span className={`switch${addBots ? ' on' : ''}`}><span className="knob" /></span>
+          </div>
+
+          {addBots && (
+            <>
+              <div className="seg-label" style={{ marginTop: 16 }}>Сложность ботов</div>
+              <div className="seg" style={{ marginTop: 8 }}>
+                {DIFFS.map(d => (
+                  <button key={d.id} className={botDifficulty === d.id ? 'on' : ''} onClick={() => setBotDifficulty(d.id)}>
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       <p className="hint" style={{ marginTop: 16, textAlign: 'center' }}>
-        Пустые места займут жители, когда ты начнёшь. Город из {room.room.townSize}.
+        {isHost
+          ? addBots
+            ? `Пустые места займут боты, когда ты начнёшь. Город из ${room.room.townSize}.`
+            : `Играете только своей компанией. Сейчас в городе: ${humans.length}.`
+          : 'Пустые места займут другие игроки.'}
       </p>
 
       {isHost ? (

@@ -8,6 +8,7 @@ import {
   voteReady,
   type GameState,
   type GameEvent,
+  type ChatLine,
 } from '@shared/engine'
 import { toView, type GameView } from '@shared/view'
 import {
@@ -32,6 +33,14 @@ export interface MatchSeat { id: string; name: string; avatar: string }
 const TOWN = 7
 export const YOU = 'you'
 
+// Short, generic replies a bot may toss back when you say something in the day
+// chat (solo / quick match only) — just enough to feel like a real table talking.
+const BOT_REPLIES = [
+  'Согласен.', 'Хм, не уверен.', 'А почему ты так думаешь?', 'Я бы пока подождал.',
+  'Логично.', 'Не нравится мне это.', 'Давай послушаем остальных.', 'У меня другое мнение.',
+  'Может быть.', 'Тогда за кого голосуем?', 'Интересно…', 'Поддерживаю.',
+]
+
 // dwell timings (ms) for the solo cinematic pacing
 const BEAT = 650
 const REVEAL_MS = 3600
@@ -43,9 +52,12 @@ interface S {
   ready: boolean
   screen: Screen
   mode: Mode | null
+  quick: boolean // a quick match (presented as live multiplayer, actually bots)
   profile: Profile | null
   botUsername: string
-  difficulty: Difficulty
+  difficulty: Difficulty // solo bot skill (solo only)
+  addBots: boolean // friends lobby: fill empty seats with bots
+  botDifficulty: Difficulty // friends lobby: skill of those bots
 
   solo: GameState | null
   room: RoomStateDto | null
@@ -63,11 +75,14 @@ interface S {
   init(): Promise<void>
   go(s: Screen): void
   setDifficulty(d: Difficulty): void
+  setAddBots(v: boolean): void
+  setBotDifficulty(d: Difficulty): void
   startSolo(): void
   startQuickMatch(): void
   dismissRole(): void
   nightAct(targetId: string): void
   castVote(targetId: string | null): void
+  sendChat(text: string): void
   leaveGame(): void
   loadLeaderboard(): Promise<void>
   createRoom(): Promise<void>
@@ -81,10 +96,13 @@ let voteTimer: ReturnType<typeof setTimeout> | null = null
 let dayTimer: ReturnType<typeof setTimeout> | null = null
 let pollTimer: ReturnType<typeof setInterval> | null = null
 let matchTimers: ReturnType<typeof setTimeout>[] = []
+let chatTimers: ReturnType<typeof setTimeout>[] = []
 let flyId = 0
 
 function clearSolo() {
   for (const t of [stepTimer, voteTimer, dayTimer]) if (t) clearTimeout(t)
+  for (const t of chatTimers) clearTimeout(t)
+  chatTimers = []
   stepTimer = voteTimer = dayTimer = null
 }
 function clearMatch() {
@@ -234,8 +252,9 @@ export const useStore = create<S>((set, get) => {
     clearMatch()
     const players = seats.map(s => ({ id: s.id, name: s.name, avatar: s.avatar, isBot: s.id !== YOU }))
     const seed = (Date.now() ^ (Math.random() * 0xffffffff)) >>> 0
-    const game = createGame({ players, seed, difficulty: get().difficulty })
-    set({ mode: 'solo', solo: game, room: null, screen: 'game', result: null, showRole: true, matchSeats: [] })
+    // quick matches read as ordinary players, so the bots play at a believable, fixed skill
+    const game = createGame({ players, seed, difficulty: 'normal' })
+    set({ mode: 'solo', quick: true, solo: game, room: null, screen: 'game', result: null, showRole: true, matchSeats: [] })
     haptic('select')
     playSfx('reveal')
   }
@@ -277,7 +296,7 @@ export const useStore = create<S>((set, get) => {
     catch (e) {
       haptic('warn')
       const code = (e as { data?: { error?: string } })?.data?.error
-      if (code && !['not_your_turn', 'bad_action', 'bad_vote'].includes(code)) toast(code.replace(/_/g, ' '))
+      if (code && !['not_your_turn', 'bad_action', 'bad_vote', 'not_day', 'bad_message'].includes(code)) toast(code.replace(/_/g, ' '))
     }
   }
 
@@ -285,9 +304,12 @@ export const useStore = create<S>((set, get) => {
     ready: false,
     screen: 'home',
     mode: null,
+    quick: false,
     profile: null,
     botUsername: 'nightfall_play_bot',
     difficulty: 'normal',
+    addBots: true,
+    botDifficulty: 'normal',
     solo: null,
     room: null,
     matchSeats: [],
@@ -331,6 +353,16 @@ export const useStore = create<S>((set, get) => {
       set({ difficulty: d })
     },
 
+    setAddBots(v) {
+      haptic('tap')
+      set({ addBots: v })
+    },
+
+    setBotDifficulty(d) {
+      haptic('tap')
+      set({ botDifficulty: d })
+    },
+
     startSolo() {
       clearSolo(); stopPoll()
       const shuffled = ROSTER.slice().sort(() => Math.random() - 0.5).slice(0, TOWN - 1)
@@ -340,7 +372,7 @@ export const useStore = create<S>((set, get) => {
       ]
       const seed = (Date.now() ^ (Math.random() * 0xffffffff)) >>> 0
       const game = createGame({ players, seed, difficulty: get().difficulty })
-      set({ mode: 'solo', solo: game, room: null, screen: 'game', result: null, showRole: true })
+      set({ mode: 'solo', quick: false, solo: game, room: null, screen: 'game', result: null, showRole: true })
       haptic('select')
       playSfx('reveal')
     },
@@ -356,7 +388,7 @@ export const useStore = create<S>((set, get) => {
         { id: YOU, name: get().profile?.name?.split(' ')[0] || 'Вы', avatar: '🙂' },
         ...names.map((n, i) => ({ id: `bot${i + 1}`, name: n, avatar: faces[i % faces.length] })),
       ]
-      set({ mode: 'solo', screen: 'matchmaking', matchSeats: [seats[0]], result: null, room: null, solo: null })
+      set({ mode: 'solo', quick: true, screen: 'matchmaking', matchSeats: [seats[0]], result: null, room: null, solo: null })
       haptic('select')
       // reveal the rest of the table one by one, then start
       seats.slice(1).forEach((seat, i) => {
@@ -403,11 +435,45 @@ export const useStore = create<S>((set, get) => {
       }
     },
 
+    sendChat(text) {
+      const msg = text.trim().slice(0, 140)
+      if (!msg) return
+      const v = get().view()
+      if (!v || v.phase !== 'day' || !v.you.alive) return
+      haptic('tap'); playSfx('tap')
+      if (get().mode === 'online' && !get().quick) {
+        const code = get().room!.room.code
+        onlineAct(() => api.roomSay(code, msg))
+        return
+      }
+      // solo / quick: append locally, then maybe let a bot answer back
+      const s = get().solo
+      if (!s) return
+      const name = get().profile?.name?.split(' ')[0] || 'Вы'
+      const line: ChatLine = { speakerId: YOU, speakerName: name, avatar: '🙂', text: msg, tone: 'observe' }
+      set({ solo: { ...s, chatter: [...s.chatter, line] } })
+      if (Math.random() < 0.7) {
+        const t = setTimeout(() => {
+          const now = get().solo
+          if (!now || now.phase !== 'day' || get().screen !== 'game') return
+          const bots = now.players.filter(p => p.alive && p.isBot)
+          if (!bots.length) return
+          const b = bots[Math.floor(Math.random() * bots.length)]
+          const reply: ChatLine = {
+            speakerId: b.id, speakerName: b.name, avatar: b.avatar,
+            text: BOT_REPLIES[Math.floor(Math.random() * BOT_REPLIES.length)], tone: 'observe',
+          }
+          set({ solo: { ...now, chatter: [...now.chatter, reply] } })
+        }, 900 + Math.random() * 1100)
+        chatTimers.push(t)
+      }
+    },
+
     leaveGame() {
       clearSolo(); clearMatch(); stopPoll()
       const room = get().room
       if (room && get().mode === 'online') api.roomLeave(room.room.code).catch(() => {})
-      set({ mode: null, solo: null, room: null, matchSeats: [], result: null, showRole: false, screen: 'home' })
+      set({ mode: null, quick: false, solo: null, room: null, matchSeats: [], result: null, showRole: false, screen: 'home' })
       haptic('tap')
     },
 
@@ -418,7 +484,7 @@ export const useStore = create<S>((set, get) => {
     async createRoom() {
       set({ busy: true, joinError: null })
       try {
-        const st = await api.roomCreate(get().difficulty)
+        const st = await api.roomCreate()
         set({ mode: 'online', room: st, screen: 'lobby', result: null, busy: false })
         startPoll(st.room.code)
       } catch {
@@ -448,10 +514,12 @@ export const useStore = create<S>((set, get) => {
       if (!room) return
       set({ busy: true })
       try {
-        const st = await api.roomStart(room.room.code)
+        const st = await api.roomStart(room.room.code, get().addBots, get().botDifficulty)
         set({ room: st, screen: 'game', busy: false, showRole: true, result: null })
-      } catch {
-        set({ busy: false }); toast('Не удалось начать')
+      } catch (e) {
+        set({ busy: false })
+        const err = (e as { data?: { error?: string } })?.data?.error
+        toast(err === 'need_players' ? 'Нужно больше игроков или включите ботов' : 'Не удалось начать')
       }
     },
   }

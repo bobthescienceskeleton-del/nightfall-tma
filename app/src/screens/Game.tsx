@@ -169,6 +169,31 @@ function RevealView({ view }: { view: GameView }) {
 }
 
 // ── DAY (discussion + voting) ────────────────────────────────────────────────
+function ChatBar() {
+  const sendChat = useStore(s => s.sendChat)
+  const [draft, setDraft] = useState('')
+  const submit = () => {
+    const t = draft.trim()
+    if (!t) return
+    sendChat(t)
+    setDraft('')
+  }
+  return (
+    <div className="chatbar">
+      <input
+        className="chat-input"
+        placeholder="Написать в чат…"
+        value={draft}
+        maxLength={140}
+        enterKeyHint="send"
+        onChange={e => setDraft(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); submit() } }}
+      />
+      <button className="chat-send" onClick={submit} disabled={!draft.trim()} aria-label="Отправить">➤</button>
+    </div>
+  )
+}
+
 function DayView({ view }: { view: GameView }) {
   const castVote = useStore(s => s.castVote)
   const voted = view.yourVote !== undefined
@@ -184,7 +209,7 @@ function DayView({ view }: { view: GameView }) {
       {view.chatter.length > 0 && (
         <div className="feed">
           {view.chatter.map((c, i) => (
-            <div className="bubble" key={i} style={{ animationDelay: `${i * 0.14}s` }}>
+            <div className={`bubble${c.speakerId === view.youId ? ' me' : ''}`} key={i} style={{ animationDelay: `${Math.min(i, 6) * 0.1}s` }}>
               <div className="av">{c.avatar}</div>
               <div className={`say ${c.tone}`}>
                 <span className="who">{c.speakerName}</span>
@@ -194,6 +219,8 @@ function DayView({ view }: { view: GameView }) {
           ))}
         </div>
       )}
+
+      {view.you.alive && <ChatBar />}
 
       <Grid view={view} selectableFn={p => canVote && p.alive && !p.isYou}
         selectedId={view.yourVote ?? undefined} onPick={id => castVote(id)} showVotes />

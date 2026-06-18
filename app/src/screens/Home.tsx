@@ -34,7 +34,7 @@ export function Home() {
         </div>
       )}
 
-      <div className="seg-label">Сложность</div>
+      <div className="seg-label">Сложность ботов в соло</div>
       <div className="seg">
         {DIFFS.map(d => (
           <button key={d.id} className={difficulty === d.id ? 'on' : ''} onClick={() => setDifficulty(d.id)}>

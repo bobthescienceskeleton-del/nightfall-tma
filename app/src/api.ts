@@ -32,11 +32,12 @@ export const api = {
   leaderboard: () => req<{ top: LeaderRow[] }>('/leaderboard'),
   soloResult: (won: boolean, team: 'town' | 'mafia') =>
     req<{ profile: Profile }>('/solo/result', { won, team }),
-  roomCreate: (difficulty?: 'easy' | 'normal' | 'hard') =>
-    req<RoomStateDto>('/room/create', { difficulty }),
+  roomCreate: () => req<RoomStateDto>('/room/create', {}),
   roomJoin: (code: string) => req<RoomStateDto>('/room/join', { code }),
   roomState: (code: string) => req<RoomStateDto>(`/room/${code}`),
-  roomStart: (code: string) => req<RoomStateDto>(`/room/${code}/start`, {}),
+  roomStart: (code: string, addBots: boolean, difficulty: 'easy' | 'normal' | 'hard') =>
+    req<RoomStateDto>(`/room/${code}/start`, { addBots, difficulty }),
+  roomSay: (code: string, text: string) => req<RoomStateDto>(`/room/${code}/say`, { text }),
   roomAct: (code: string, power: 'kill' | 'save' | 'investigate', targetId: string) =>
     req<RoomStateDto>(`/room/${code}/act`, { power, targetId }),
   roomVote: (code: string, targetId: string | null) =>

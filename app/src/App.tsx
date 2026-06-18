@@ -61,10 +61,15 @@ function Overlays() {
 function ResultModal() {
   const result = useStore(s => s.result)!
   const mode = useStore(s => s.mode)
+  const quick = useStore(s => s.quick)
   const startSolo = useStore(s => s.startSolo)
+  const startQuickMatch = useStore(s => s.startQuickMatch)
   const leaveGame = useStore(s => s.leaveGame)
   const won = result.won
   const townWon = result.winner === 'town'
+  const online = mode === 'online' && !quick
+  const again = quick ? startQuickMatch : online ? leaveGame : startSolo
+  const againLabel = quick ? 'Новая игра 🌙' : online ? 'В город' : 'Играть снова 🌙'
 
   return (
     <div className="scrim">
@@ -98,9 +103,7 @@ function ResultModal() {
             <span className="coin-chip">🪙 +30 монет</span>
           </div>
         )}
-        <button className="btn block lg" onClick={mode === 'online' ? leaveGame : startSolo}>
-          {mode === 'online' ? 'В город' : 'Играть снова 🌙'}
-        </button>
+        <button className="btn block lg" onClick={again}>{againLabel}</button>
         <button className="btn ghost block" style={{ marginTop: 10 }} onClick={leaveGame}>На главную</button>
       </div>
     </div>

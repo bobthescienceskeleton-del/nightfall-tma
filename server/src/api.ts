@@ -9,6 +9,7 @@ import {
   startRoom,
   actInRoom,
   voteInRoom,
+  sayInRoom,
   getRoomState,
   leaveRoom,
 } from './rooms'
@@ -56,11 +57,9 @@ api.post('/solo/result', async c => {
 // ── online rooms ───────────────────────────────────────────────────────────
 const nameOf = (uid: number) => getProfile(uid)?.name ?? 'Player'
 
-api.post('/room/create', async c => {
+api.post('/room/create', c => {
   const uid = c.get('uid')
-  const body = await c.req.json<{ difficulty?: 'easy' | 'normal' | 'hard' }>().catch(() => null)
-  const difficulty = body?.difficulty === 'easy' || body?.difficulty === 'hard' ? body.difficulty : 'normal'
-  return c.json(createRoom(uid, nameOf(uid), difficulty))
+  return c.json(createRoom(uid, nameOf(uid)))
 })
 
 api.post('/room/join', async c => {
@@ -79,8 +78,19 @@ api.get('/room/:code', c => {
   return c.json(r)
 })
 
-api.post('/room/:code/start', c => {
-  const r = startRoom(c.req.param('code'), c.get('uid'))
+const startSchema = z.object({
+  addBots: z.boolean().optional(),
+  difficulty: z.enum(['easy', 'normal', 'hard']).optional(),
+})
+
+api.post('/room/:code/start', async c => {
+  const body = await c.req.json().catch(() => ({}))
+  const parsed = startSchema.safeParse(body ?? {})
+  const opts = parsed.success ? parsed.data : {}
+  const r = startRoom(c.req.param('code'), c.get('uid'), {
+    addBots: opts.addBots ?? true,
+    difficulty: opts.difficulty ?? 'normal',
+  })
   if ('error' in r) return c.json(r, 400)
   return c.json(r)
 })
@@ -106,6 +116,17 @@ api.post('/room/:code/vote', async c => {
   const parsed = voteSchema.safeParse(body)
   if (!parsed.success) return c.json({ error: 'bad_vote' }, 400)
   const r = voteInRoom(c.req.param('code'), c.get('uid'), parsed.data.targetId)
+  if ('error' in r) return c.json(r, 400)
+  return c.json(r)
+})
+
+const saySchema = z.object({ text: z.string().min(1).max(140) })
+
+api.post('/room/:code/say', async c => {
+  const body = await c.req.json().catch(() => null)
+  const parsed = saySchema.safeParse(body)
+  if (!parsed.success) return c.json({ error: 'bad_message' }, 400)
+  const r = sayInRoom(c.req.param('code'), c.get('uid'), parsed.data.text)
   if ('error' in r) return c.json(r, 400)
   return c.json(r)
 })

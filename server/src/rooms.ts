@@ -17,6 +17,7 @@ import {
   type GameState,
   type Action,
   type Difficulty,
+  type ChatLine,
 } from '../../shared/engine'
 import { toView } from '../../shared/view'
 import {
@@ -63,6 +64,7 @@ interface Room {
 const rooms = new Map<string, Room>()
 const TOWN_SIZE = 7
 const MAX_HUMANS = 7
+const MIN_TOWN = 4 // fewest players for a coherent game when starting without bots
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // no easily-confused chars
 
 // pacing (ms)
@@ -150,28 +152,41 @@ export function joinRoom(code: string, tgId: number, name: string): RoomStateDto
   return stateFor(room, tgId)
 }
 
-export function startRoom(code: string, tgId: number): RoomStateDto | { error: string } {
+export function startRoom(
+  code: string,
+  tgId: number,
+  opts: { addBots: boolean; difficulty: Difficulty } = { addBots: true, difficulty: 'normal' },
+): RoomStateDto | { error: string } {
   const room = rooms.get(code.toUpperCase())
   if (!room) return { error: 'no_room' }
   if (room.hostTgId !== tgId) return { error: 'not_host' }
   if (room.game) return { error: 'already_started' }
 
-  // pad with characterful bots up to a full town
-  let b = 0
-  const used = new Set(room.seats.map(s => s.avatar))
-  while (room.seats.length < room.townSize) {
-    const t = ROSTER.find(r => !used.has(r.avatar)) ?? ROSTER[b % ROSTER.length]
-    used.add(t.avatar)
-    b++
-    room.seats.push({
-      id: `bot${b}`,
-      tgId: null,
-      name: t.name,
-      avatar: t.avatar,
-      isBot: true,
-      isHost: false,
-      lastSeen: Date.now(),
-    })
+  const humans = room.seats.filter(s => !s.isBot).length
+
+  if (opts.addBots) {
+    // pad with characterful bots up to a full town, at the chosen skill
+    room.difficulty = opts.difficulty
+    let b = 0
+    const used = new Set(room.seats.map(s => s.avatar))
+    while (room.seats.length < room.townSize) {
+      const t = ROSTER.find(r => !used.has(r.avatar)) ?? ROSTER[b % ROSTER.length]
+      used.add(t.avatar)
+      b++
+      room.seats.push({
+        id: `bot${b}`,
+        tgId: null,
+        name: t.name,
+        avatar: t.avatar,
+        isBot: true,
+        isHost: false,
+        lastSeen: Date.now(),
+      })
+    }
+  } else {
+    // friends-only: play with exactly who is in the room
+    if (humans < MIN_TOWN) return { error: 'need_players' }
+    room.townSize = humans
   }
 
   const seed = (Date.now() ^ (Math.random() * 0xffffffff)) >>> 0
@@ -334,6 +349,29 @@ export function voteInRoom(
   room.lastActivity = Date.now()
   tickRoom(room)
   if (e) return { error: e }
+  return stateFor(room, tgId)
+}
+
+// A human seat says something in the day chat. The line is appended to the
+// shared chatter feed so every client sees it on their next poll.
+export function sayInRoom(
+  code: string,
+  tgId: number,
+  text: string,
+): RoomStateDto | { error: string } {
+  const room = rooms.get(code.toUpperCase())
+  if (!room || !room.game) return { error: 'no_game' }
+  const seat = seatFor(room, tgId)
+  if (!seat) return { error: 'not_in_room' }
+  seat.lastSeen = Date.now()
+  if (room.game.phase !== 'day') return { error: 'not_day' }
+  const clean = text.replace(/\s+/g, ' ').trim().slice(0, 140)
+  if (!clean) return { error: 'bad_message' }
+  const line: ChatLine = { speakerId: seat.id, speakerName: seat.name, avatar: seat.avatar, text: clean, tone: 'observe' }
+  // keep the feed bounded so a long game can't grow it without limit
+  room.game.chatter = [...room.game.chatter, line].slice(-60)
+  room.version++
+  room.lastActivity = Date.now()
   return stateFor(room, tgId)
 }
 
