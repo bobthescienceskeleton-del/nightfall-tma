@@ -19,12 +19,12 @@ export function Lobby() {
       <div className="lobby rise">
         <div className="page-head" style={{ alignSelf: 'flex-start' }}>
           <button className="round-btn" onClick={() => useStore.getState().go('home')}>‹</button>
-          <h1>Join a town</h1>
+          <h1>Зайти в город</h1>
         </div>
         <div className="field" style={{ marginTop: 8 }}>
           <input
             className="code-input"
-            placeholder="CODE"
+            placeholder="КОД"
             value={code}
             maxLength={4}
             autoCapitalize="characters"
@@ -37,7 +37,7 @@ export function Lobby() {
             disabled={code.length !== 4 || busy}
             onClick={() => joinRoom(code)}
           >
-            {busy ? 'Joining…' : 'Join game'}
+            {busy ? 'Заходим…' : 'Войти в игру'}
           </button>
         </div>
       </div>
@@ -53,20 +53,20 @@ export function Lobby() {
   const share = () => {
     haptic('tap')
     const link = `https://t.me/${botUsername}?startapp=room_${room.room.code}`
-    shareLink(link, `Come play Nightfall with me! Town code ${room.room.code} 🌙`)
+    shareLink(link, `Сыграй со мной в Секрет ночи! Код города ${room.room.code} 🌙`)
   }
 
   return (
     <div className="lobby rise">
       <div className="page-head" style={{ alignSelf: 'flex-start' }}>
         <button className="round-btn" onClick={leaveGame}>‹</button>
-        <h1>Town square</h1>
+        <h1>Городская площадь</h1>
       </div>
 
       <div className="code-card">
-        <div>Share this code</div>
+        <div>Поделись этим кодом</div>
         <div className="code-big">{room.room.code}</div>
-        <button className="btn accent block" style={{ marginTop: 8 }} onClick={share}>Invite friends ↗</button>
+        <button className="btn accent block" style={{ marginTop: 8 }} onClick={share}>Позвать друзей ↗</button>
       </div>
 
       <div className="seatlist">
@@ -74,27 +74,27 @@ export function Lobby() {
           <div className="seat" key={p.id}>
             <div className="av">{p.avatar}</div>
             <div className="nm">{p.name}</div>
-            {p.isHost ? <div className="tag host">HOST</div> : p.isBot ? <div className="tag bot">BOT</div> : <div className="tag wait">READY</div>}
+            {p.isHost ? <div className="tag host">ХОЗЯИН</div> : p.isBot ? <div className="tag wait">В ИГРЕ</div> : <div className="tag wait">ГОТОВ</div>}
           </div>
         ))}
         {humans.length < room.room.maxPlayers && (
           <div className="seat" style={{ opacity: 0.6 }}>
             <div className="av">＋</div>
-            <div className="nm">Waiting for neighbours…</div>
+            <div className="nm">Ждём соседей<span className="dots" /></div>
           </div>
         )}
       </div>
 
       <p className="hint" style={{ marginTop: 16, textAlign: 'center' }}>
-        Empty seats fill with townsfolk when you start. Town of {room.room.townSize}.
+        Пустые места займут жители, когда ты начнёшь. Город из {room.room.townSize}.
       </p>
 
       {isHost ? (
         <button className="btn block lg" style={{ maxWidth: 420, marginTop: 8 }} disabled={busy} onClick={startRoom}>
-          {busy ? 'Gathering…' : 'Start game 🌙'}
+          {busy ? 'Собираем…' : 'Начать игру 🌙'}
         </button>
       ) : (
-        <p className="hint" style={{ marginTop: 8 }}>Waiting for the host to start…</p>
+        <p className="hint" style={{ marginTop: 8 }}>Ждём, пока хозяин начнёт<span className="dots" /></p>
       )}
     </div>
   )

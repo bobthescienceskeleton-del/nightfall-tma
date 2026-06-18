@@ -18,11 +18,11 @@
 // and are fed back in as actions by the driver — mirroring uno's design.
 // ============================================================================
 
-import { type Role, type Team, ROLES, teamOf, rolesForCount } from './roles'
+import { type Role, type Team, type Difficulty, ROLES, teamOf, rolesForCount } from './roles'
 import { makeRng, shuffle } from './rng'
 import { composeChatter, type ChatLine } from './chatter'
 
-export type { Role, Team, ChatLine }
+export type { Role, Team, Difficulty, ChatLine }
 
 export type Phase = 'night' | 'reveal' | 'day' | 'verdict' | 'gameover'
 
@@ -64,6 +64,7 @@ export interface GameState {
   phase: Phase
   day: number // 1-based; "night N" comes before "day N"
   rngState: number
+  difficulty: Difficulty // bot skill level (drives randomness in bots.ts)
   status: 'playing' | 'finished'
   winner: Team | null
 
@@ -112,6 +113,7 @@ export interface ApplyResult {
 export interface NewGameOpts {
   players: { id: string; name: string; avatar: string; isBot: boolean }[]
   seed: number
+  difficulty?: Difficulty
 }
 
 export function createGame(opts: NewGameOpts): GameState {
@@ -143,6 +145,7 @@ export function createGame(opts: NewGameOpts): GameState {
     phase: 'night',
     day: 1,
     rngState: rng.state,
+    difficulty: opts.difficulty ?? 'normal',
     status: 'playing',
     winner: null,
     night: { mafiaTarget: null, doctorTarget: null, detectiveTarget: null, detectiveId: null },
@@ -279,10 +282,10 @@ function advance(s: GameState, events: GameEvent[]): ApplyResult {
       day: s.day,
       kind: 'dawn',
       text: victimId
-        ? `${playerById(s, victimId)!.name} was found gone at first light.`
+        ? `${playerById(s, victimId)!.name} нашли мёртвым на рассвете.`
         : saved
-          ? `A blade fell in the dark — but everyone woke to see the dawn.`
-          : `The night passed quietly. Everyone is still here.`,
+          ? `Нож сверкнул в темноте, но все дожили до рассвета.`
+          : `Ночь прошла тихо. Все на месте.`,
     })
     bumpSuspicionAfterNight(s, rng)
     s.phase = 'reveal'
@@ -316,15 +319,15 @@ function advance(s: GameState, events: GameEvent[]): ApplyResult {
       s.log.push({
         day: s.day,
         kind: 'verdict',
-        text: `The town turned on ${t.name}. They were ${roleArticle(t.role)}.`,
+        text: `Город ополчился на ${t.name}. Это был(а) ${ROLES[t.role].name}.`,
       })
     } else {
       s.log.push({
         day: s.day,
         kind: 'verdict',
         text: verdict.tie
-          ? `The vote split clean down the middle. No one hangs today.`
-          : `The town stayed its hand. No one hangs today.`,
+          ? `Голоса разделились ровно пополам. Сегодня никого не изгоняют.`
+          : `Город не поднял руку. Сегодня никого не изгоняют.`,
       })
     }
     bumpSuspicionAfterVote(s, verdict, rng)
@@ -357,16 +360,11 @@ function finish(s: GameState, winner: Team, events: GameEvent[]): ApplyResult {
     day: s.day,
     kind: 'gameover',
     text: winner === 'town'
-      ? `The last of the Mafia is unmasked. The town survives.`
-      : `The Mafia hold the town in their grip. Darkness wins.`,
+      ? `Последняя мафия разоблачена. Город выстоял.`
+      : `Мафия держит город в кулаке. Побеждает тьма.`,
   })
   events.push({ kind: 'gameover', winner })
   return { state: s, events }
-}
-
-function roleArticle(role: Role): string {
-  const n = ROLES[role].name
-  return /^[AEIOU]/.test(n) ? `an ${n}` : `a ${n}`
 }
 
 // ── vote tally ───────────────────────────────────────────────────────────────

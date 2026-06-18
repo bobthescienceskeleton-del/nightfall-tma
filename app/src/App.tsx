@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useStore } from './store'
 import { Home } from './screens/Home'
 import { Lobby } from './screens/Lobby'
+import { Matchmaking } from './screens/Matchmaking'
 import { Rules } from './screens/Rules'
 import { Leaderboard } from './screens/Leaderboard'
 import { Game } from './screens/Game'
@@ -22,8 +23,8 @@ export function App() {
         <div className="home" style={{ justifyContent: 'center' }}>
           <div className="brand" style={{ animation: 'pop-in .5s ease both' }}>
             <Logo />
-            <div className="brand-name">Nightfall</div>
-            <div className="brand-tag">Waking the town<span className="dots" /></div>
+            <div className="brand-name">Секрет ночи</div>
+            <div className="brand-tag">Будим город<span className="dots" /></div>
           </div>
         </div>
       </div>
@@ -34,6 +35,7 @@ export function App() {
     <div className="app">
       {screen === 'home' && <Home />}
       {screen === 'lobby' && <Lobby />}
+      {screen === 'matchmaking' && <Matchmaking />}
       {screen === 'rules' && <Rules />}
       {screen === 'leaderboard' && <Leaderboard />}
       {screen === 'game' && <Game />}
@@ -83,23 +85,23 @@ function ResultModal() {
       )}
       <div className="sheet pop result">
         <div className="result-emoji">{won ? '🏆' : townWon ? '🌅' : '🌑'}</div>
-        <h1>{won ? 'Victory' : 'Defeat'}</h1>
+        <h1>{won ? 'Победа' : 'Поражение'}</h1>
         <div className="result-sub">
           {townWon
-            ? 'The town rooted out every last Mafia.'
-            : 'The Mafia tightened their grip on the town.'}
+            ? 'Город вычислил всю мафию до последнего.'
+            : 'Мафия сомкнула хватку на городе.'}
           {' '}
-          {won ? 'You were on the winning side.' : 'Better luck next nightfall.'}
+          {won ? 'Вы были на стороне победителей.' : 'В следующую ночь повезёт больше.'}
         </div>
         {won && (
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-            <span className="coin-chip">🪙 +30 coins</span>
+            <span className="coin-chip">🪙 +30 монет</span>
           </div>
         )}
         <button className="btn block lg" onClick={mode === 'online' ? leaveGame : startSolo}>
-          {mode === 'online' ? 'Back to town square' : 'Play again 🌙'}
+          {mode === 'online' ? 'В город' : 'Играть снова 🌙'}
         </button>
-        <button className="btn ghost block" style={{ marginTop: 10 }} onClick={leaveGame}>Home</button>
+        <button className="btn ghost block" style={{ marginTop: 10 }} onClick={leaveGame}>На главную</button>
       </div>
     </div>
   )

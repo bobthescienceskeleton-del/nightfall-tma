@@ -16,6 +16,7 @@ import {
   voteReady,
   type GameState,
   type Action,
+  type Difficulty,
 } from '../../shared/engine'
 import { toView } from '../../shared/view'
 import {
@@ -48,6 +49,7 @@ interface Room {
   game: GameState | null
   version: number
   townSize: number
+  difficulty: Difficulty
   createdAt: number
   lastActivity: number
   // pacing
@@ -99,7 +101,7 @@ function roomDto(room: Room): RoomDto {
   }
 }
 
-export function createRoom(tgId: number, name: string): RoomStateDto {
+export function createRoom(tgId: number, name: string, difficulty: Difficulty = 'normal'): RoomStateDto {
   const code = newCode()
   const room: Room = {
     code,
@@ -110,6 +112,7 @@ export function createRoom(tgId: number, name: string): RoomStateDto {
     game: null,
     version: 1,
     townSize: TOWN_SIZE,
+    difficulty,
     createdAt: Date.now(),
     lastActivity: Date.now(),
     phaseAt: Date.now(),
@@ -175,6 +178,7 @@ export function startRoom(code: string, tgId: number): RoomStateDto | { error: s
   room.game = createGame({
     players: room.seats.map(s => ({ id: s.id, name: s.name, avatar: s.avatar, isBot: s.isBot })),
     seed,
+    difficulty: room.difficulty,
   })
   room.scored = false
   room.botNightDone = false

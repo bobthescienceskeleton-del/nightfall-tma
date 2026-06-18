@@ -11,6 +11,12 @@
 import type { GameState, EnginePlayer, Action } from './engine'
 import { makeRng } from './rng'
 
+// How much randomness colours a bot's decision. Easy bots wander (more noise =
+// looser, more forgiving play); hard bots lock onto the best read with little
+// slack. The factor scales every random term in the rankings below.
+const NOISE: Record<string, number> = { easy: 2.4, normal: 1, hard: 0.4 }
+const nz = (s: GameState) => NOISE[s.difficulty] ?? 1
+
 const alive = (s: GameState) => s.players.filter(p => p.alive)
 const livingMafia = (s: GameState) => alive(s).filter(p => p.role === 'mafia')
 const livingTown = (s: GameState) => alive(s).filter(p => p.role !== 'mafia')
@@ -49,7 +55,7 @@ export function botMafiaTarget(s: GameState): string | null {
   const rng = localRng(s, 101 + s.day)
   // rank town by how trusted they are (ascending avg suspicion = most dangerous)
   const ranked = town
-    .map(p => ({ p, trust: -avgSuspicion(s, p.id) + rng.next() * 12 }))
+    .map(p => ({ p, trust: -avgSuspicion(s, p.id) + rng.next() * 12 * nz(s) }))
     .sort((a, b) => b.trust - a.trust)
   return ranked[0].p.id
 }
@@ -60,12 +66,12 @@ export function botDoctorTarget(s: GameState, doctorId: string): string | null {
   const cands = alive(s)
   if (!cands.length) return null
   const rng = localRng(s, 202 + s.day)
-  if (rng.next() < 0.2) return doctorId // hedge and save self
+  if (rng.next() < (s.difficulty === 'hard' ? 0.1 : 0.2)) return doctorId // hedge and save self
   const town = livingTown(s).filter(p => p.id !== doctorId)
   const pool = town.length ? town : cands
   // protect the most-trusted town pillar (mafia's likely pick)
   const ranked = pool
-    .map(p => ({ p, score: -avgSuspicion(s, p.id) + rng.next() * 14 }))
+    .map(p => ({ p, score: -avgSuspicion(s, p.id) + rng.next() * 14 * nz(s) }))
     .sort((a, b) => b.score - a.score)
   return ranked[0].p.id
 }
@@ -80,7 +86,7 @@ export function botDetectiveTarget(s: GameState, detId: string): string | null {
   if (!pool.length) return null
   const rng = localRng(s, 303 + s.day)
   const ranked = pool
-    .map(p => ({ p, score: (view[p.id] ?? 0) + rng.next() * 20 }))
+    .map(p => ({ p, score: (view[p.id] ?? 0) + rng.next() * 20 * nz(s) }))
     .sort((a, b) => b.score - a.score)
   return ranked[0].p.id
 }
@@ -131,7 +137,7 @@ export function botVote(s: GameState, voterId: string): string | null {
     const town = others.filter(p => p.role !== 'mafia')
     if (!town.length) return null
     const ranked = town
-      .map(p => ({ p, score: avgSuspicion(s, p.id) + rng.next() * 16 }))
+      .map(p => ({ p, score: avgSuspicion(s, p.id) + rng.next() * 16 * nz(s) }))
       .sort((a, b) => b.score - a.score)
     return ranked[0].p.id
   }
@@ -149,10 +155,11 @@ export function botVote(s: GameState, voterId: string): string | null {
     if (c && c.id !== voterId) return c.id
   }
   const ranked = others
-    .map(p => ({ p, score: (view[p.id] ?? 0) + rng.next() * 14 }))
+    .map(p => ({ p, score: (view[p.id] ?? 0) + rng.next() * 14 * nz(s) }))
     .sort((a, b) => b.score - a.score)
-  // a hung jury is no fun every round, but the very meek sometimes abstain
-  if (ranked[0].score < 8 && rng.next() < 0.25) return null
+  // a hung jury is no fun every round, but the meek (and easy bots) sometimes abstain
+  const abstainChance = s.difficulty === 'easy' ? 0.4 : s.difficulty === 'hard' ? 0.12 : 0.25
+  if (ranked[0].score < 8 && rng.next() < abstainChance) return null
   return ranked[0].p.id
 }
 

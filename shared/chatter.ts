@@ -41,40 +41,40 @@ function topSuspect(s: GameState, owner: EnginePlayer, avoidMafia: boolean): Eng
 // ── template banks (variety keeps the table from sounding canned) ────────────
 
 const ACCUSE = [
-  (a: string, b: string) => `“${b}, you’ve been awfully quiet. Quiet people have something to hide.”`,
-  (a: string, b: string) => `“I don’t trust ${b}. Something about that face at dawn.”`,
-  (a: string, b: string) => `“Watch ${b} — too eager to point fingers, if you ask me.”`,
-  (a: string, b: string) => `“It’s ${b}. I’d stake my last lamp-oil on it.”`,
-  (a: string, b: string) => `“${b} hasn’t looked me in the eye once. That’s answer enough.”`,
-  (a: string, b: string) => `“Funny how trouble follows ${b} around, isn’t it?”`,
-  (a: string, b: string) => `“My gut says ${b}. And my gut kept me alive this long.”`,
+  (a: string, b: string) => `«${b}, ты что-то притих. Тихони обычно что-то скрывают.»`,
+  (a: string, b: string) => `«Я не верю ${b}. Что-то не так с этим лицом на рассвете.»`,
+  (a: string, b: string) => `«Приглядитесь к ${b}. Слишком уж рвётся обвинять других.»`,
+  (a: string, b: string) => `«Это ${b}. Готов спорить на последнюю лампу.»`,
+  (a: string, b: string) => `«${b} ни разу не посмотрел мне в глаза. Этого достаточно.»`,
+  (a: string, b: string) => `«Странно, как беда ходит за ${b} по пятам, правда?»`,
+  (a: string, b: string) => `«Чутьё говорит: ${b}. А оно меня пока спасало.»`,
 ]
 const DEFEND = [
-  (me: string) => `“Me? I was asleep like the rest of you. This is madness.”`,
-  (me: string) => `“You’re wasting the day on me while the real wolf grins.”`,
-  (me: string) => `“Point that finger somewhere it belongs. I’ve done nothing.”`,
-  (me: string) => `“If you hang me you’ll see your mistake tomorrow — too late.”`,
-  (me: string) => `“I’m as town as they come. Think it through.”`,
+  (me: string) => `«Я? Я спал, как и все вы. Это безумие.»`,
+  (me: string) => `«Вы тратите день на меня, а настоящий волк ухмыляется.»`,
+  (me: string) => `«Показывай пальцем туда, где есть вина. Я ничего не делал.»`,
+  (me: string) => `«Повесите меня, завтра поймёте ошибку. Поздно будет.»`,
+  (me: string) => `«Я свой, до мозга костей. Подумайте сами.»`,
 ]
 const OBSERVE = [
-  () => `“Let’s not panic. Who did each of us suspect last night?”`,
-  () => `“Two of us are lying. Only two. Narrow it down.”`,
-  () => `“Keep your heads. Loud accusers are often the guilty ones.”`,
-  () => `“Count the empty chairs. We can’t afford another wrong rope.”`,
-  () => `“Somebody here smiled when the body was found. I saw it.”`,
+  () => `«Без паники. Кого каждый из нас подозревал ночью?»`,
+  () => `«Двое из нас лгут. Всего двое. Сузим круг.»`,
+  () => `«Держите голову холодной. Кто громче кричит, тот часто и виновен.»`,
+  () => `«Сосчитайте пустые стулья. Ещё одна ошибка нам не по карману.»`,
+  () => `«Кто-то здесь улыбнулся, когда нашли тело. Я видел.»`,
 ]
 const PANIC = [
-  () => `“We’re all going to die in our beds, aren’t we?”`,
-  () => `“Another dawn, another grave. I can’t take much more of this.”`,
-  () => `“Lock your doors tonight. Trust no one. Not even me.”`,
+  () => `«Мы все погибнем в своих постелях, да?»`,
+  () => `«Ещё рассвет, ещё могила. Я так долго не выдержу.»`,
+  () => `«Запирайте двери на ночь. Никому не верьте. Даже мне.»`,
 ]
 const CLAIM = [
-  (b: string) => `“I’ll say it plain: I looked into ${b}, and I did not like what I found.”`,
-  (b: string) => `“Call me what you like — I’ve been watching ${b}, and I’m sure.”`,
-  (b: string) => `“I kept a quiet eye on ${b} in the dark. We should listen to me.”`,
+  (b: string) => `«Скажу прямо: я приглядывал за ${b}, и мне не понравилось то, что я увидел.»`,
+  (b: string) => `«Называйте как хотите, но я следил за ${b} и уверен.»`,
+  (b: string) => `«Я тихо наблюдал за ${b} в темноте. Стоит меня послушать.»`,
 ]
 const CLEARED = [
-  (b: string) => `“For what it’s worth, I’d vouch for ${b}. Look elsewhere.”`,
+  (b: string) => `«Я поручусь за ${b}. Ищите в другом месте.»`,
 ]
 
 export function composeChatter(s: GameState, rng: Rng): ChatLine[] {

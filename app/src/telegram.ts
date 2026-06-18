@@ -3,6 +3,9 @@ interface TgWebApp {
   initData: string
   initDataUnsafe: { user?: { id: number; first_name: string }; start_param?: string }
   colorScheme: 'light' | 'dark'
+  viewportHeight: number
+  viewportStableHeight: number
+  onEvent(type: string, cb: () => void): void
   ready(): void
   expand(): void
   isVersionAtLeast(v: string): boolean
@@ -28,7 +31,18 @@ export const inTelegram = !!tg && tg.initData.length > 0
 
 const NIGHT = '#141733'
 
+// Telegram's in-app webview is often taller than the visible area, so a layout
+// pinned to the raw viewport pushes its lower half (Start button, scroll tail)
+// off-screen with nowhere to scroll. We drive the app height from Telegram's
+// reported viewport so content always fits and inner scroll containers work.
+function syncViewport() {
+  const h = tg?.viewportStableHeight || tg?.viewportHeight || window.innerHeight
+  document.documentElement.style.setProperty('--app-height', `${h}px`)
+}
+
 export function initTelegram() {
+  syncViewport()
+  window.addEventListener('resize', syncViewport)
   if (!tg) return
   try {
     tg.ready()
@@ -36,6 +50,7 @@ export function initTelegram() {
     tg.setHeaderColor(NIGHT)
     tg.setBackgroundColor(NIGHT)
     if (tg.isVersionAtLeast('7.7')) tg.disableVerticalSwipes?.()
+    tg.onEvent('viewportChanged', syncViewport)
   } catch { /* older clients */ }
 }
 

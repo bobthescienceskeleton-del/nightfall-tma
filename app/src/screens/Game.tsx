@@ -26,7 +26,7 @@ export function Game() {
     return (
       <div className="scene night">
         <TownScene mode="night" />
-        <div className="wait-panel"><div className="wait-moon">🌙</div><div className="wait-text">Gathering the town<span className="dots" /></div></div>
+        <div className="wait-panel"><div className="wait-moon">🌙</div><div className="wait-text">Собираем город<span className="dots" /></div></div>
       </div>
     )
   }
@@ -42,7 +42,7 @@ export function Game() {
 
       <div className="scene-body">
         <div className="gtop">
-          <button className="round-btn" onClick={leaveGame} aria-label="Leave">‹</button>
+          <button className="round-btn" onClick={leaveGame} aria-label="Выйти">‹</button>
           <span className="phase-badge">{badge(phase, view.day)}</span>
           <span className="gtop-spacer" />
           <span className="alive-chip">👥 {view.aliveCount}</span>
@@ -67,11 +67,11 @@ export function Game() {
 }
 
 function badge(phase: GameView['phase'], day: number): string {
-  if (phase === 'night') return `🌙 Night ${day}`
-  if (phase === 'reveal') return `🌅 Dawn ${day}`
-  if (phase === 'day') return `☀️ Day ${day}`
-  if (phase === 'verdict') return `⚖️ Verdict`
-  return `🌑 Over`
+  if (phase === 'night') return `🌙 Ночь ${day}`
+  if (phase === 'reveal') return `🌅 Рассвет ${day}`
+  if (phase === 'day') return `☀️ День ${day}`
+  if (phase === 'verdict') return `⚖️ Приговор`
+  return `🌑 Конец`
 }
 
 // ── NIGHT ────────────────────────────────────────────────────────────────────
@@ -82,14 +82,14 @@ function NightView({ view }: { view: GameView }) {
   // you have a power and haven't used it yet → targeting
   if (view.canAct && view.actPower) {
     const prompt =
-      view.actPower === 'kill' ? 'Choose tonight’s victim'
-      : view.actPower === 'save' ? 'Choose someone to protect'
-      : 'Choose someone to investigate'
+      view.actPower === 'kill' ? 'Выбери жертву этой ночи'
+      : view.actPower === 'save' ? 'Выбери, кого защитить'
+      : 'Выбери, кого проверить'
     return (
       <>
         <div className="phase-head">
           <div className="phase-title">{ROLES[view.you.role].emoji} {prompt}</div>
-          <div className="phase-sub">The town is asleep. Make your move.</div>
+          <div className="phase-sub">Город спит. Сделай свой ход.</div>
         </div>
         <Grid view={view} selectableFn={p => targetable(view, p)} selectedId={view.yourNightTarget}
           onPick={id => nightAct(id)} />
@@ -108,22 +108,22 @@ function NightView({ view }: { view: GameView }) {
         <span className="wait-z" style={{ left: '74%', top: '-14px', animationDelay: '1s' }}>z</span>
       </div>
       <div className="wait-text">
-        {acted && target ? povAction(view.actPower, target.name) : me.alive ? 'Night falls over the town' : 'You rest among the lost'}
+        {acted && target ? povAction(view.actPower, target.name) : me.alive ? 'Над городом опускается ночь' : 'Ты покоишься среди ушедших'}
       </div>
       <div className="wait-sub">
         {me.alive
-          ? <>The streets are dark and quiet. Dawn is coming<span className="dots" /></>
-          : <>Watch the town decide its fate from the shadows.</>}
+          ? <>Улицы темны и тихи. Скоро рассвет<span className="dots" /></>
+          : <>Наблюдай из тени, как город решает свою судьбу.</>}
       </div>
     </div>
   )
 }
 
 function povAction(power: GameView['actPower'], name: string): string {
-  if (power === 'kill') return `Your mark is set on ${name}`
-  if (power === 'save') return `You stand watch over ${name}`
-  if (power === 'investigate') return `You shadow ${name} through the night`
-  return 'Your move is made'
+  if (power === 'kill') return `Твоя метка на ${name}`
+  if (power === 'save') return `Ты охраняешь ${name}`
+  if (power === 'investigate') return `Ты следишь за ${name} всю ночь`
+  return 'Твой ход сделан'
 }
 
 // ── DAWN (reveal) ────────────────────────────────────────────────────────────
@@ -139,20 +139,20 @@ function RevealView({ view }: { view: GameView }) {
         {victim ? (
           <>
             <div className="face-big">{victim.avatar}</div>
-            <h2>{victim.name} is gone</h2>
-            <p>Found at first light, taken in the night. They were {article(view, victim)}.</p>
+            <h2>{victim.name} погиб</h2>
+            <p>Нашли на рассвете, забрали ночью. Это был(а) {article(view, victim)}.</p>
           </>
         ) : ln?.saved ? (
           <>
             <div className="face-big saved">✚</div>
-            <h2>Saved!</h2>
-            <p>A blade fell in the dark — but the Doctor was faster. Everyone woke to see the dawn.</p>
+            <h2>Спасён!</h2>
+            <p>Нож сверкнул в темноте, но доктор оказался быстрее. Все дожили до рассвета.</p>
           </>
         ) : (
           <>
             <div className="face-big">🌅</div>
-            <h2>A quiet night</h2>
-            <p>No one was taken. The town wakes whole — for now.</p>
+            <h2>Тихая ночь</h2>
+            <p>Никого не забрали. Город проснулся целым, пока что.</p>
           </>
         )}
       </div>
@@ -160,8 +160,8 @@ function RevealView({ view }: { view: GameView }) {
       {readTarget && freshRead && (
         <div className="obit" style={{ marginTop: 12 }}>
           <div className="face-big">{freshRead.isMafia ? '🔪' : '🕊️'}</div>
-          <h2>Your findings</h2>
-          <p>You shadowed <b>{readTarget.name}</b> — they are {freshRead.isMafia ? 'one of the Mafia.' : 'not Mafia.'}</p>
+          <h2>Твоё расследование</h2>
+          <p>Ты следил за <b>{readTarget.name}</b>: {freshRead.isMafia ? 'это мафия.' : 'это не мафия.'}</p>
         </div>
       )}
     </>
@@ -177,8 +177,8 @@ function DayView({ view }: { view: GameView }) {
   return (
     <>
       <div className="phase-head">
-        <div className="phase-title">The town gathers</div>
-        <div className="phase-sub">{view.you.alive ? 'Read the room, then cast your vote.' : 'You look on from beyond.'}</div>
+        <div className="phase-title">Город собирается</div>
+        <div className="phase-sub">{view.you.alive ? 'Прочитай настроение и голосуй.' : 'Ты смотришь со стороны.'}</div>
       </div>
 
       {view.chatter.length > 0 && (
@@ -200,16 +200,16 @@ function DayView({ view }: { view: GameView }) {
 
       <div className="dock" style={{ paddingBottom: 4 }}>
         {!view.you.alive ? (
-          <div className="dock-note">You’ve been eliminated — watch how it unfolds.</div>
+          <div className="dock-note">Тебя изгнали. Смотри, чем всё закончится.</div>
         ) : voted ? (
           <div className="dock-note">
-            {view.yourVote ? `Your vote is cast for ${nameOf(view, view.yourVote)}. ` : 'You abstained. '}
-            Waiting for the town<span className="dots" />
+            {view.yourVote ? `Твой голос отдан за ${nameOf(view, view.yourVote)}. ` : 'Ты воздержался. '}
+            Ждём город<span className="dots" />
           </div>
         ) : (
           <>
-            <div className="dock-note">Tap a neighbour to vote them out.</div>
-            <button className="btn onnight block" onClick={() => castVote(null)}>Abstain 🤐</button>
+            <div className="dock-note">Нажми на соседа, чтобы проголосовать против него.</div>
+            <button className="btn onnight block" onClick={() => castVote(null)}>Воздержаться 🤐</button>
           </>
         )}
       </div>
@@ -227,14 +227,14 @@ function VerdictView({ view }: { view: GameView }) {
         {out ? (
           <>
             <div className="face-big">{out.avatar}</div>
-            <h2>{out.name} is cast out</h2>
-            <p>The town has spoken. They were {article(view, out)}.</p>
+            <h2>{out.name} изгнан</h2>
+            <p>Город сказал своё слово. Это был(а) {article(view, out)}.</p>
           </>
         ) : (
           <>
             <div className="face-big">⚖️</div>
-            <h2>No one hangs today</h2>
-            <p>{ver?.tie ? 'The vote split clean down the middle.' : 'The town stayed its hand.'} The Mafia walk free another night.</p>
+            <h2>Сегодня никого не изгоняют</h2>
+            <p>{ver?.tie ? 'Голоса разделились ровно пополам.' : 'Город не поднял руку.'} Мафия гуляет на свободе ещё одну ночь.</p>
           </>
         )}
       </div>
@@ -273,7 +273,7 @@ function Grid({
             onClick={selectable && onPick ? () => onPick(p.id) : undefined}
             disabled={!selectable}
           >
-            {p.isYou && <span className="badge you">YOU</span>}
+            {p.isYou && <span className="badge you">Я</span>}
             {p.alive && p.knownRole === 'mafia' && !p.isYou && <span className="badge mafia">🔪</span>}
             {showVotes && p.alive && p.votesOn > 0 && <span className="badge votes">{p.votesOn}</span>}
             {!p.alive && <span className="grave">🪦</span>}
@@ -292,8 +292,8 @@ function Sub({ view, p }: { view: GameView; p: ViewPlayer }) {
     const team = ROLES[p.knownRole].team
     return <span className={`role-reveal t-${team}`}>{ROLES[p.knownRole].name}</span>
   }
-  if (p.cleared) return <span className="sub cleared">✓ cleared</span>
-  if (p.alive && p.knownRole === 'mafia' && !p.isYou) return <span className="sub caught">mafia</span>
+  if (p.cleared) return <span className="sub cleared">✓ чисто</span>
+  if (p.alive && p.knownRole === 'mafia' && !p.isYou) return <span className="sub caught">мафия</span>
   if (p.isYou) return <span className="sub">{ROLES[view.you.role].name}</span>
   return <span className="sub">&nbsp;</span>
 }
@@ -308,11 +308,10 @@ function targetable(view: GameView, p: ViewPlayer): boolean {
 
 function article(view: GameView, p: ViewPlayer): string {
   const r = p.knownRole
-  if (!r) return 'a townsperson'
-  const n = ROLES[r].name
-  return /^[AEIOU]/.test(n) ? `an ${n}` : `a ${n}`
+  if (!r) return 'мирный житель'
+  return ROLES[r].name
 }
 
 function nameOf(view: GameView, id: string): string {
-  return view.players.find(p => p.id === id)?.name ?? 'someone'
+  return view.players.find(p => p.id === id)?.name ?? 'кто-то'
 }

@@ -56,9 +56,11 @@ api.post('/solo/result', async c => {
 // ── online rooms ───────────────────────────────────────────────────────────
 const nameOf = (uid: number) => getProfile(uid)?.name ?? 'Player'
 
-api.post('/room/create', c => {
+api.post('/room/create', async c => {
   const uid = c.get('uid')
-  return c.json(createRoom(uid, nameOf(uid)))
+  const body = await c.req.json<{ difficulty?: 'easy' | 'normal' | 'hard' }>().catch(() => null)
+  const difficulty = body?.difficulty === 'easy' || body?.difficulty === 'hard' ? body.difficulty : 'normal'
+  return c.json(createRoom(uid, nameOf(uid), difficulty))
 })
 
 api.post('/room/join', async c => {

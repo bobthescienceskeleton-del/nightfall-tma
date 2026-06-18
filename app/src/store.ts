@@ -17,16 +17,17 @@ import {
   botDoctorTarget,
   botDetectiveTarget,
 } from '@shared/bots'
-import { ROLES } from '@shared/roles'
-import { ROSTER } from '@shared/names'
+import { ROLES, type Difficulty } from '@shared/roles'
+import { ROSTER, QUICK_NAMES, HUMAN_AVATARS } from '@shared/names'
 import type { Profile, RoomStateDto } from '@shared/types'
 import { api } from './api'
 import { haptic } from './telegram'
 import { playSfx } from './sound'
 
-type Screen = 'home' | 'rules' | 'leaderboard' | 'lobby' | 'game'
+type Screen = 'home' | 'rules' | 'leaderboard' | 'lobby' | 'matchmaking' | 'game'
 type Mode = 'solo' | 'online'
 interface ResultInfo { won: boolean; winner: 'town' | 'mafia' }
+export interface MatchSeat { id: string; name: string; avatar: string }
 
 const TOWN = 7
 export const YOU = 'you'
@@ -44,9 +45,11 @@ interface S {
   mode: Mode | null
   profile: Profile | null
   botUsername: string
+  difficulty: Difficulty
 
   solo: GameState | null
   room: RoomStateDto | null
+  matchSeats: MatchSeat[] // seats filling in during a quick match
   joinError: string | null
   busy: boolean
 
@@ -59,7 +62,9 @@ interface S {
   view(): GameView | null
   init(): Promise<void>
   go(s: Screen): void
+  setDifficulty(d: Difficulty): void
   startSolo(): void
+  startQuickMatch(): void
   dismissRole(): void
   nightAct(targetId: string): void
   castVote(targetId: string | null): void
@@ -75,11 +80,16 @@ let stepTimer: ReturnType<typeof setTimeout> | null = null
 let voteTimer: ReturnType<typeof setTimeout> | null = null
 let dayTimer: ReturnType<typeof setTimeout> | null = null
 let pollTimer: ReturnType<typeof setInterval> | null = null
+let matchTimers: ReturnType<typeof setTimeout>[] = []
 let flyId = 0
 
 function clearSolo() {
   for (const t of [stepTimer, voteTimer, dayTimer]) if (t) clearTimeout(t)
   stepTimer = voteTimer = dayTimer = null
+}
+function clearMatch() {
+  for (const t of matchTimers) clearTimeout(t)
+  matchTimers = []
 }
 function stopPoll() {
   if (pollTimer) clearInterval(pollTimer)
@@ -218,6 +228,18 @@ export const useStore = create<S>((set, get) => {
     api.soloResult(won, team).then(r => set({ profile: r.profile })).catch(() => {})
   }
 
+  // Quick match runs on the same client-side engine as solo (the other seats are
+  // bots), but is dressed up as a public online game; the player is none the wiser.
+  function launchQuickGame(seats: MatchSeat[]) {
+    clearMatch()
+    const players = seats.map(s => ({ id: s.id, name: s.name, avatar: s.avatar, isBot: s.id !== YOU }))
+    const seed = (Date.now() ^ (Math.random() * 0xffffffff)) >>> 0
+    const game = createGame({ players, seed, difficulty: get().difficulty })
+    set({ mode: 'solo', solo: game, room: null, screen: 'game', result: null, showRole: true, matchSeats: [] })
+    haptic('select')
+    playSfx('reveal')
+  }
+
   // ── ONLINE driver ──────────────────────────────────────────────────────────
   function applyRoom(next: RoomStateDto) {
     const prev = get().room
@@ -232,6 +254,11 @@ export const useStore = create<S>((set, get) => {
       else if (nv.phase === 'verdict' && nv.lastVerdict?.targetId) playSfx('hang')
     }
     set({ room: next })
+    // a non-host who is still in the lobby when the host starts must follow the
+    // town into the game — otherwise their screen stays stuck on the lobby.
+    if (next.room.started && get().screen === 'lobby') {
+      set({ screen: 'game', showRole: true })
+    }
     if (next.roundOver && !prev?.roundOver) {
       playSfx(next.roundOver.youWon ? 'win' : 'lose')
       haptic(next.roundOver.youWon ? 'success' : 'warn')
@@ -260,8 +287,10 @@ export const useStore = create<S>((set, get) => {
     mode: null,
     profile: null,
     botUsername: 'nightfall_play_bot',
+    difficulty: 'normal',
     solo: null,
     room: null,
+    matchSeats: [],
     joinError: null,
     busy: false,
     showRole: false,
@@ -293,21 +322,52 @@ export const useStore = create<S>((set, get) => {
     go(screen) {
       haptic('tap')
       if (screen !== 'lobby' && screen !== 'game') stopPoll()
+      if (screen !== 'matchmaking') clearMatch()
       set({ screen })
+    },
+
+    setDifficulty(d) {
+      haptic('tap')
+      set({ difficulty: d })
     },
 
     startSolo() {
       clearSolo(); stopPoll()
       const shuffled = ROSTER.slice().sort(() => Math.random() - 0.5).slice(0, TOWN - 1)
       const players = [
-        { id: YOU, name: get().profile?.name?.split(' ')[0] || 'You', avatar: '🙂', isBot: false },
+        { id: YOU, name: get().profile?.name?.split(' ')[0] || 'Вы', avatar: '🙂', isBot: false },
         ...shuffled.map((t, i) => ({ id: `bot${i + 1}`, name: t.name, avatar: t.avatar, isBot: true })),
       ]
       const seed = (Date.now() ^ (Math.random() * 0xffffffff)) >>> 0
-      const game = createGame({ players, seed })
+      const game = createGame({ players, seed, difficulty: get().difficulty })
       set({ mode: 'solo', solo: game, room: null, screen: 'game', result: null, showRole: true })
       haptic('select')
       playSfx('reveal')
+    },
+
+    // Quick match: drop the player into a fresh public town. The other seats are
+    // characters we fill in (they read as ordinary players — never flagged), and
+    // they trickle in like a real lobby filling up before the round begins.
+    startQuickMatch() {
+      clearSolo(); clearMatch(); stopPoll()
+      const names = QUICK_NAMES.slice().sort(() => Math.random() - 0.5).slice(0, TOWN - 1)
+      const faces = HUMAN_AVATARS.slice().sort(() => Math.random() - 0.5)
+      const seats: MatchSeat[] = [
+        { id: YOU, name: get().profile?.name?.split(' ')[0] || 'Вы', avatar: '🙂' },
+        ...names.map((n, i) => ({ id: `bot${i + 1}`, name: n, avatar: faces[i % faces.length] })),
+      ]
+      set({ mode: 'solo', screen: 'matchmaking', matchSeats: [seats[0]], result: null, room: null, solo: null })
+      haptic('select')
+      // reveal the rest of the table one by one, then start
+      seats.slice(1).forEach((seat, i) => {
+        const t = setTimeout(() => {
+          set(st => ({ matchSeats: [...st.matchSeats, seat] }))
+          haptic('tap')
+        }, 500 + i * 520 + Math.random() * 260)
+        matchTimers.push(t)
+      })
+      const launch = setTimeout(() => launchQuickGame(seats), 500 + (seats.length - 1) * 520 + 900)
+      matchTimers.push(launch)
     },
 
     dismissRole() {
@@ -344,10 +404,10 @@ export const useStore = create<S>((set, get) => {
     },
 
     leaveGame() {
-      clearSolo(); stopPoll()
+      clearSolo(); clearMatch(); stopPoll()
       const room = get().room
       if (room && get().mode === 'online') api.roomLeave(room.room.code).catch(() => {})
-      set({ mode: null, solo: null, room: null, result: null, showRole: false, screen: 'home' })
+      set({ mode: null, solo: null, room: null, matchSeats: [], result: null, showRole: false, screen: 'home' })
       haptic('tap')
     },
 
@@ -358,11 +418,11 @@ export const useStore = create<S>((set, get) => {
     async createRoom() {
       set({ busy: true, joinError: null })
       try {
-        const st = await api.roomCreate()
+        const st = await api.roomCreate(get().difficulty)
         set({ mode: 'online', room: st, screen: 'lobby', result: null, busy: false })
         startPoll(st.room.code)
       } catch {
-        set({ busy: false, joinError: 'Could not create a room. Check your connection.' })
+        set({ busy: false, joinError: 'Не получилось создать комнату. Проверьте соединение.' })
       }
     },
 
@@ -376,9 +436,9 @@ export const useStore = create<S>((set, get) => {
         const err = (e as { data?: { error?: string } })?.data?.error
         set({
           busy: false,
-          joinError: err === 'no_room' ? 'No town with that code.'
-            : err === 'already_started' ? 'That game already started.'
-            : err === 'full' ? 'That town is full.' : 'Could not join.',
+          joinError: err === 'no_room' ? 'Нет города с таким кодом.'
+            : err === 'already_started' ? 'Эта игра уже началась.'
+            : err === 'full' ? 'Этот город переполнен.' : 'Не удалось зайти.',
         })
       }
     },
@@ -391,7 +451,7 @@ export const useStore = create<S>((set, get) => {
         const st = await api.roomStart(room.room.code)
         set({ room: st, screen: 'game', busy: false, showRole: true, result: null })
       } catch {
-        set({ busy: false }); toast('Could not start')
+        set({ busy: false }); toast('Не удалось начать')
       }
     },
   }

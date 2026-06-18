@@ -11,22 +11,22 @@ export function RoleCard({ view, onClose }: { view: GameView; onClose: () => voi
     <div className="scrim" onClick={onClose}>
       <div className={`rolecard r-${view.you.role}`} onClick={e => e.stopPropagation()}>
         <div className="rc-emoji">{meta.emoji}</div>
-        <div className="rc-eyebrow">You are the</div>
+        <div className="rc-eyebrow">Твоя роль</div>
         <div className="rc-name">{meta.name}</div>
-        <div className="rc-blurb">“{meta.blurb}”</div>
+        <div className="rc-blurb">«{meta.blurb}»</div>
         <div className="rc-power">{meta.power}</div>
         <div className="rc-team">
-          {meta.team === 'mafia' ? '🌑 Mafia' : '🏘️ Town'} · {meta.team === 'mafia' ? 'win by outnumbering the town' : 'win by unmasking the Mafia'}
+          {meta.team === 'mafia' ? '🌑 Мафия' : '🏘️ Город'} · {meta.team === 'mafia' ? 'победа, когда вас станет больше' : 'победа, когда вычислите мафию'}
         </div>
         {view.you.role === 'mafia' && (
           <div className="rc-partners">
             {partners.length
-              ? <>Your partner{partners.length > 1 ? 's' : ''} in crime: <b>{partners.map(p => p.name).join(', ')}</b></>
-              : <>You work alone tonight.</>}
+              ? <>{partners.length > 1 ? 'Твои подельники' : 'Твой подельник'}: <b>{partners.map(p => p.name).join(', ')}</b></>
+              : <>Этой ночью ты работаешь один.</>}
           </div>
         )}
         <button className="btn cream block lg" style={{ marginTop: 20 }} onClick={onClose}>
-          {meta.team === 'mafia' ? 'Into the dark 🔪' : 'I’m ready 🌙'}
+          {meta.team === 'mafia' ? 'Во тьму 🔪' : 'Я готов 🌙'}
         </button>
       </div>
     </div>

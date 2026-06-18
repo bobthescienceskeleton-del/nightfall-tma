@@ -4,6 +4,9 @@
 export type Role = 'mafia' | 'detective' | 'doctor' | 'villager'
 export type Team = 'town' | 'mafia'
 
+// Bot skill levels. Higher difficulty means sharper, less random play.
+export type Difficulty = 'easy' | 'normal' | 'hard'
+
 export interface RoleMeta {
   role: Role
   team: Team
@@ -18,37 +21,37 @@ export const ROLES: Record<Role, RoleMeta> = {
   mafia: {
     role: 'mafia',
     team: 'mafia',
-    name: 'Mafia',
+    name: 'Мафия',
     emoji: '🔪',
-    blurb: 'You move in the dark.',
-    power: 'Each night, you and your partners choose one townsperson to eliminate.',
+    blurb: 'Ты ходишь во тьме.',
+    power: 'Каждую ночь вы с напарниками выбираете одного горожанина, кого убрать.',
     color: '#e2574c',
   },
   detective: {
     role: 'detective',
     team: 'town',
-    name: 'Detective',
+    name: 'Детектив',
     emoji: '🔎',
-    blurb: 'You read the truth in their eyes.',
-    power: 'Each night, investigate one player to learn if they are Mafia.',
+    blurb: 'Ты читаешь правду по глазам.',
+    power: 'Каждую ночь проверяй одного игрока и узнавай, мафия ли он.',
     color: '#2f93cf',
   },
   doctor: {
     role: 'doctor',
     team: 'town',
-    name: 'Doctor',
+    name: 'Доктор',
     emoji: '✚',
-    blurb: 'You keep the lamps burning till dawn.',
-    power: 'Each night, protect one player from the Mafia’s blade.',
+    blurb: 'Ты не даёшь погаснуть лампам до рассвета.',
+    power: 'Каждую ночь защищай одного игрока от ножа мафии.',
     color: '#54b15a',
   },
   villager: {
     role: 'villager',
     team: 'town',
-    name: 'Villager',
+    name: 'Мирный житель',
     emoji: '🧑‍🌾',
-    blurb: 'You have only your wits and your vote.',
-    power: 'You have no night power — read the room and vote out the Mafia.',
+    blurb: 'У тебя есть только смекалка и твой голос.',
+    power: 'У тебя нет ночной силы. Читай людей и голосуй против мафии.',
     color: '#f2a93b',
   },
 }

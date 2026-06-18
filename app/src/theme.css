@@ -105,7 +105,8 @@ h2 { font-size: 19px; }
 
 /* -- app shell ----------------------------------------------- */
 .app {
-  position: fixed; inset: 0;
+  position: fixed; left: 0; right: 0; top: 0;
+  height: var(--app-height, 100%);
   display: flex; flex-direction: column;
   background:
     radial-gradient(120% 80% at 50% -10%, rgba(255,255,255,.4), rgba(255,255,255,0) 42%),
@@ -113,6 +114,13 @@ h2 { font-size: 19px; }
     linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
   color: var(--ink);
   overflow: hidden;
+}
+
+/* every scrollable surface: smooth touch scrolling that never gets trapped */
+.home, .page, .lobby, .scene-body {
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
 }
 
 /* -- home / menu --------------------------------------------- */
@@ -130,7 +138,7 @@ h2 { font-size: 19px; }
 @keyframes logo-float { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-8px) rotate(1deg); } }
 @keyframes halo { 0%, 100% { opacity: .8; transform: translate(-50%,-50%) scale(1); } 50% { opacity: 1; transform: translate(-50%,-50%) scale(1.06); } }
 .brand-name {
-  font-size: 44px; font-weight: 900; letter-spacing: -.02em; line-height: 1; margin-top: 12px;
+  font-size: 40px; font-weight: 900; letter-spacing: -.02em; line-height: 1.05; margin-top: 12px;
   background: linear-gradient(120deg, var(--brown-deep) 38%, var(--accent) 50%, var(--brown-deep) 62%);
   background-size: 280% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 2px 0 rgba(255,255,255,.5));
@@ -219,6 +227,28 @@ h2 { font-size: 19px; }
   box-shadow: inset 0 2px 5px rgba(122,79,42,.16), 0 0 0 1px var(--hairline); }
 .code-input::placeholder { color: #c9b48f; letter-spacing: 8px; }
 .hint { color: var(--ink-soft); font-weight: 800; font-size: 14px; }
+
+/* -- difficulty segmented control ---------------------------- */
+.seg { width: 100%; max-width: 420px; display: flex; gap: 6px; margin-top: 18px; padding: 5px;
+  background: linear-gradient(180deg, var(--cream-shade), #efe1c6); border-radius: 16px;
+  box-shadow: inset 0 2px 5px rgba(122,79,42,.16), 0 0 0 1px var(--hairline); }
+.seg button { flex: 1; border: none; cursor: pointer; font-family: inherit; font-weight: 900; font-size: 13.5px;
+  padding: 10px 6px; border-radius: 12px; background: transparent; color: var(--ink-soft); transition: transform .1s ease; }
+.seg button:active { transform: scale(.96); }
+.seg button.on { background: linear-gradient(180deg, var(--cream), var(--cream-shade)); color: var(--brown-deep);
+  box-shadow: inset 0 1px 0 var(--highlight), var(--shadow-sm), 0 0 0 1px var(--hairline); }
+.seg-label { width: 100%; max-width: 420px; text-align: left; color: var(--ink-soft); font-weight: 900; font-size: 12px;
+  text-transform: uppercase; letter-spacing: .6px; margin: 18px 0 -8px; }
+
+/* -- matchmaking (quick play) -------------------------------- */
+.match { position: relative; z-index: 1; flex: 1; min-height: 0; overflow-y: auto;
+  padding: calc(var(--safe-top) + 16px) 20px calc(var(--safe-bottom) + 20px);
+  display: flex; flex-direction: column; align-items: center; }
+.match-spinner { font-size: 56px; margin: 8px 0 4px; animation: moon-bob 3s ease-in-out infinite;
+  filter: drop-shadow(0 6px 16px rgba(60,50,90,.3)); }
+.match h1 { color: var(--ink); text-align: center; }
+.match-count { color: var(--ink-soft); font-weight: 800; margin-top: 4px; }
+.seat.joining { animation: pop-in .4s cubic-bezier(.2,.8,.3,1.3) both; }
 
 /* ============================================================
    THE GAME — moonlit night ⇄ warm dawn
